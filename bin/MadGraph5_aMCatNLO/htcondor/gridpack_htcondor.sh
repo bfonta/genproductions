@@ -13,6 +13,6 @@ PYTHONPATH=$PYTHONPATH:/usr/lib64/python3.6/site-packages/; \
 
 mv Singlet_hh_ST${STHETA}_K${KAP}_M${MASS} ${OUTDIR}
 mv Singlet_hh_ST${STHETA}_K${KAP}_M${MASS}.log ${OUTDIR}
-mv Singlet_hh_ST${STHETA}_K${KAP}_M${MASS}_${SCRAM_ARCH}_${CMSSW_VERSION}_tarball.tar.xz ${OUTDIR} 
+mv Singlet_hh_ST${STHETA}_K${KAP}_M${MASS}_${SCRAM_ARCH}_CMSSW_12_4_8_tarball.tar.xz ${OUTDIR} 
 
 echo "Done!"

@@ -19,18 +19,13 @@ func check(e error) {
 }
 
 func main() {
-        outdirFlag := flag.String("outdir", "", "Output directory.")
-	tagFlag  := flag.String("tag", "", "Input directory, where the tarballs are stored.")
+	indirFlag  := flag.String("indir", "", "Input directory, where the tarballs are stored.")
 	flag.Usage = func() {
-	    fmt.Fprintf(os.Stderr, "Usage: go run lhe_htcondor.go -outdir=LHE_Out -tag=MyTag\n")
+	    fmt.Fprintf(os.Stderr, "Usage: go run lhe_htcondor.go -indir=InFolder\n")
 	}   
 	flag.Parse()
-	if *outdirFlag == "" {
-		fmt.Println("Plase specify the '-outdir=...' option.")
-		os.Exit(1)
-	}
-	if *tagFlag == "" {
-		fmt.Println("Plase specify the '-tag=...' option.")
+	if *indirFlag == "" {
+		fmt.Println("Plase specify the '-indir=...' option.")
 		os.Exit(1)
 	}
 	
@@ -38,8 +33,7 @@ func main() {
 		string(os.Getenv("USER")[0]), os.Getenv("USER"),
 		"genproductions/bin/MadGraph5_aMCatNLO/")
 	condor_dir := fp.Join(base_dir, "htcondor/")
-	condor_out := fp.Join(condor_dir, fmt.Sprintf("out_lhe_%s/", *outdirFlag)) + "/"
-	out_dir := fp.Join(base_dir, *outdirFlag)
+	condor_out := fp.Join(condor_dir, fmt.Sprintf("out_LHE_%s/", *indirFlag)) + "/"
 
 	outfile := "ST$(Stheta)_K$(Kappa)_M$(Mass)"
 
@@ -51,6 +45,7 @@ func main() {
 	sthetas := [3]string{"0.2", "0.5", "0.8"}
 	kappas  := [3]string{"1.0", "2.0", "3.0"}
 
+	out_dir := fp.Join(base_dir, "LHE_" + *indirFlag)
 	loop_inside := ""
 	r := regexp.MustCompile(regexp.QuoteMeta("."))
 	zipdirs := [2]string{out_dir, condor_out}
@@ -81,13 +76,13 @@ func main() {
 	m := []string{
 		"universe = vanilla",
 		"executable = " + fp.Join(condor_dir, "lhe_htcondor.sh"),
-		fmt.Sprintf("arguments  = $(Mass) $(Stheta) $(Kappa) %s %s %s", fp.Join(base_dir, *outdirFlag), fp.Join(base_dir, *tagFlag), nevents),
+		fmt.Sprintf("arguments  = $(Mass) $(Stheta) $(Kappa) %s %s %s", fp.Join(base_dir, "LHE_" + *indirFlag), fp.Join(base_dir, *indirFlag), nevents),
 		"output     = " + condor_out + outfile + ".out",
 		"error      = " + condor_out + outfile + ".err",
 		"log        = " + condor_out + outfile + ".log",
 		
 		"getenv = true",
-		fmt.Sprintf("+JobBatchName=\"FW_LHE_%s\"", *outdirFlag),
+		fmt.Sprintf("+JobBatchName=\"FW_LHE_%s\"", "LHE_" + *indirFlag),
 		"+JobFlavour = \"longlunch\"", // 2 hours (see https://batchdocs.web.cern.ch/local/submit.html)
 		"RequestCpus = 1",
 		
@@ -95,7 +90,7 @@ func main() {
 		loop_inside,
 		")"}
 	
-	f, err := os.Create(fp.Join(condor_dir, "lhe_htcondor_" + *outdirFlag + ".condor"))
+	f, err := os.Create(fp.Join(condor_dir, "lhe_htcondor_" + *indirFlag + ".condor"))
 	check(err)
 	defer f.Close()
 	f.WriteString(strings.Join(m, "\n"))
