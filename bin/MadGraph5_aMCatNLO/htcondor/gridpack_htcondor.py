@@ -1,9 +1,15 @@
 import os
 import argparse
+import numpy as np
+
+def ntos(n):
+    """Converts float to string"""
+    return str(n).replace('.', 'p').replace('-', 'm')
 
 parser = argparse.ArgumentParser(description='Plotter for finite width studies.')
 parser.add_argument("--out_dir", required=True, help="Output directory.",)
-parser.add_argument("--card_dir", required=True, choices=('Singlet_resonly', 'Singlet_nores'), 
+parser.add_argument("--card_dir", required=True,
+                    choices=('Singlet_resonly', 'Singlet_nores', 'Singlet_all'), 
                     help="Datacards subdirectory.",)
 FLAGS = parser.parse_args()
 
@@ -21,30 +27,33 @@ for d in (out_dir, condor_out):
         mes += 'Deletion command: rm -r {}\n'.format(d)
         raise RuntimeError(mes)
             
-endl = "\n"
-outfile = "ST$(Stheta)_K$(Kappa)_M$(Mass)"
+outfile = "ST$(Stheta)_L$(Lambda112)_K$(Kappa111)_M$(Mass)"
 
 # masses = ('250', '260', '270', '280', '300', '320', '350', '400',
 #           '450', '500', '550', '600', '650', '700', '750', '800',
-#           '850', '900', '1000', '1250', '1500', '1750', '2000', '2500', '3000')
-masses = ('250',)
-sthetas = (0.2, 0.5, 0.8)
-kaps = (1., 2., 3.)
+#           '850', '900', '1000', '1250', '1500', '1750', '2000', '2500', '3000')    
+mass_points = (250, 350, 450, 550, 650, 750, 850, 950)
+stheta_points = np.arange(0.,1.1,.2) # sine of theta mixing between the new scalar and the SM Higgs
+l112_points = np.arange(-300,301,100) # resonance coupling with two Higgses
+k111_points = (1.,) #np.arange(-7,12) # tri-linear kappa
+
+def add_new_line(m, st, lbd, kap, s):
+    if not (m==mass_points[-1] and st==stheta_points[-1] and lbd==l112_points[-1] and kap==k111_points[-1]):
+        return s + "\n"
+    else:
+        return s
 
 loop_inside = ''
-for st in sthetas:
-    ststr = str(st).replace('.', 'p')
-    for kap in kaps:
-        kstr = str(kap).replace('.', 'p')
-        for m in masses:
-            mstr = str(m)
-            loop_inside += '    ' + mstr + ', ' + ststr + ', ' + kstr
-            if not (m==masses[-1] and kap==kaps[-1] and st==sthetas[-1]):
-                loop_inside += endl
+for st in stheta_points:
+    for lbd in l112_points:
+        for kap in k111_points:
+            for m in mass_points:
+                loop_inside += '    ' + ntos(m) + ', ' + ntos(st) + ', ' + ntos(lbd) + ', ' + ntos(kap)
+                loop_inside = add_new_line(m, st, lbd, kap, loop_inside)
 
 m = ( 'universe = vanilla',
       'executable = ' + os.path.join(condor_dir, 'gridpack_htcondor.sh'),
-      'arguments  = $(Mass) $(Stheta) $(Kappa) {} {}'.format(out_dir, FLAGS.card_dir),
+      'arguments  = $(Mass) $(Stheta) $(Lambda112) $(Kappa111) {} {}'.format(out_dir, FLAGS.card_dir),
       'output     = ' + condor_out + outfile + '.out',
       'error      = ' + condor_out + outfile + '.err',
       'log        = ' + condor_out + outfile + '.log',
@@ -54,7 +63,7 @@ m = ( 'universe = vanilla',
       '+JobFlavour   = "longlunch"', # 2 hours (see https://batchdocs.web.cern.ch/local/submit.html)
       'RequestCpus   = 1',
       
-      'queue Mass, Stheta, Kappa from (',
+      'queue Mass, Stheta, Lambda112, Kappa111 from (',
       loop_inside,
       ')'
      )
