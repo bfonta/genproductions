@@ -2,8 +2,10 @@ import os
 import argparse
 import numpy as np
 
-def ntos(n):
+def ntos(n, around=None):
     """Converts float to string"""
+    if around is not None:
+        n = np.round(n, around)
     return str(n).replace('.', 'p').replace('-', 'm')
 
 parser = argparse.ArgumentParser(description='Plotter for finite width studies.')
@@ -48,7 +50,7 @@ for st in stheta_points:
     for lbd in l112_points:
         for kap in k111_points:
             for m in mass_points:
-                loop_inside += '    ' + ntos(m) + ', ' + ntos(st) + ', ' + ntos(lbd) + ', ' + ntos(kap)
+                loop_inside += '    ' + ntos(m) + ', ' + ntos(st, 1) + ', ' + ntos(lbd) + ', ' + ntos(kap)
                 loop_inside = add_new_line(m, st, lbd, kap, loop_inside)
 
 m = ( 'universe = vanilla',
