@@ -26,6 +26,6 @@ mv ${NAME}_slc7_amd64_gcc10_CMSSW_12_4_8_tarball.tar.xz ${OUTDIR}
 
 mv ${JOBDIR}/"${NAME}_job.err" ${OUTDIR}/${NAME}
 mv ${JOBDIR}/"${NAME}_job.out" ${OUTDIR}/${NAME}
-mv ${JOBDIR}/"${NAME}.log" ${OUTDIR}/${NAME}
+#mv ${JOBDIR}/"${NAME}.log" ${OUTDIR}/${NAME}
 
 echo "Done!"

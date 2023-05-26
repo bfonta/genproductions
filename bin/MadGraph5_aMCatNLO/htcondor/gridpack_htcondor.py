@@ -56,7 +56,7 @@ m = ( 'universe = vanilla',
       'arguments  = $(Mass) $(Stheta) $(Lambda112) $(Kappa111) {} {}'.format(out_dir, FLAGS.card_dir),
       'output     = ' + outfile + '_job.out',
       'error      = ' + outfile + '_job.err',
-      'log        = ' + outfile + '_job.log',
+      #'log        = ' + outfile + '_job.log',
       
       'getenv = true',
       '+JobBatchName ="FW_{}"'.format(FLAGS.out_dir),
