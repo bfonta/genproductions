@@ -18,18 +18,15 @@ FLAGS = parser.parse_args()
 base_dir = os.path.join('/afs/cern.ch/work/', os.environ['USER'][0], os.environ['USER'],
                         'genproductions/bin/MadGraph5_aMCatNLO/')
 condor_dir = os.path.join(base_dir, 'htcondor/')
-condor_out = os.path.join(condor_dir, 'out_gridpack_{}/'.format(FLAGS.out_dir))
 out_dir = os.path.join(base_dir, FLAGS.out_dir + '/')
 
-for d in (out_dir, condor_out):
+for d in (out_dir,):
     if not os.path.exists(d):
         os.makedirs(d)
     else:
         mes = 'Folder {} already exists!\n'.format(d)
         mes += 'Deletion command: rm -r {}\n'.format(d)
         raise RuntimeError(mes)
-            
-outfile = "ST$(Stheta)_L$(Lambda112)_K$(Kappa111)_M$(Mass)"
 
 # masses = ('250', '260', '270', '280', '300', '320', '350', '400',
 #           '450', '500', '550', '600', '650', '700', '750', '800',
@@ -53,17 +50,21 @@ for st in stheta_points:
                 loop_inside += '    ' + ntos(m) + ', ' + ntos(st, 1) + ', ' + ntos(lbd) + ', ' + ntos(kap)
                 loop_inside = add_new_line(m, st, lbd, kap, loop_inside)
 
+outfile = "Singlet_hh_ST$(Stheta)_L$(Lambda112)_K$(Kappa111)_M$(Mass)"
 m = ( 'universe = vanilla',
       'executable = ' + os.path.join(condor_dir, 'gridpack_htcondor.sh'),
       'arguments  = $(Mass) $(Stheta) $(Lambda112) $(Kappa111) {} {}'.format(out_dir, FLAGS.card_dir),
-      'output     = ' + condor_out + outfile + '.out',
-      'error      = ' + condor_out + outfile + '.err',
-      'log        = ' + condor_out + outfile + '.log',
+      'output     = ' + outfile + '_job.out',
+      'error      = ' + outfile + '_job.err',
+      'log        = ' + outfile + '_job.log',
       
       'getenv = true',
       '+JobBatchName ="FW_{}"'.format(FLAGS.out_dir),
-      '+JobFlavour   = "longlunch"', # 2 hours (see https://batchdocs.web.cern.ch/local/submit.html)
+      '+JobFlavour   = "microcentury"', # 2 hours (see https://batchdocs.web.cern.ch/local/submit.html)
+
       'RequestCpus   = 1',
+      'RequestMemory = 1GB',
+      'RequestDisk   = 512MB',
       
       'queue Mass, Stheta, Lambda112, Kappa111 from (',
       loop_inside,

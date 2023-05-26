@@ -281,7 +281,8 @@ make_gridpack () {
 				if [[ $model = *[!\ ]* ]]; then
 					echo "Loading extra model $model in folder $PWD"
 					#wget --no-check-certificate https://cms-project-generators.web.cern.ch/cms-project-generators/$model	
-					cp /afs/cern.ch/work/b/bfontana/genproductions/bin/MadGraph5_aMCatNLO/${model} .
+					#cp /afs/cern.ch/work/b/bfontana/genproductions/bin/MadGraph5_aMCatNLO/${model} .
+					cp /eos/user/b/bfontana/FiniteWidth/${model} .
 					cd models
 					if [[ $model == *".zip"* ]]; then
 						unzip ../$model
@@ -695,11 +696,14 @@ name=${1}
 # name of the run
 carddir=${2}
 
+# job local directory (hack to avoid logfile write from job to /afs/)
+jobdir=${3}
+
 # which queue
-queue=${3}
+queue=${4}
 
 # processing options
-jobstep=${4}
+jobstep=${5}
 
 # sync default cmssw with the current OS 
 export SYSTEM_RELEASE=`cat /etc/redhat-release`
@@ -765,6 +769,10 @@ if [ -z ${carddir} ]; then
     echo "Card directory not provided"
 fi
 
+if [ -z ${jobdir} ]; then
+    echo "Job directory not provided. It is needed to point to the log files."
+fi
+
 if [ -z ${name} ]; then
   echo "Process/card name not provided"
   if [ "${BASH_SOURCE[0]}" != "${0}" ]; then return 1; else exit 1; fi
@@ -803,7 +811,7 @@ if [[ `uname -a` == *"lxplus"* ]]; then
   fi
 fi
 
-LOGFILE=${RUNHOME}/${name}.log
+LOGFILE=${jobdir}/${name}.log
 LOGFILE_NAME=${LOGFILE/.log/}
 
 # where to search for datacards, that have to follow a naming code: 
