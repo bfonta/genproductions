@@ -7,7 +7,7 @@ KAPPA111=${4}
 OUTDIR=${5}
 CARDDIR=${6}
 
-BASE="/afs/cern.ch/work/${USER:0:1}/${USER}/genproductions/bin/MadGraph5_aMCatNLO"
+BASE="/home/llr/cms/${USER}/genproductions/bin/MadGraph5_aMCatNLO"
 #EOSBASE="/eos/user/${USER:0:1}/${USER}/FiniteWidth/cards/"
 PARS="ST${STHETA}_L${LAMBDA112}_K${KAPPA111}_M${MASS}"
 NAME="Singlet_hh_${PARS}"

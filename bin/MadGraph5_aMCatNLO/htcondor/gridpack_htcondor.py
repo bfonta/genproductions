@@ -15,7 +15,7 @@ parser.add_argument("--card_dir", required=True,
                     help="Datacards subdirectory.",)
 FLAGS = parser.parse_args()
 
-base_dir = os.path.join('/afs/cern.ch/work/', os.environ['USER'][0], os.environ['USER'],
+base_dir = os.path.join('/home/llr/cms/', os.environ['USER'],
                         'genproductions/bin/MadGraph5_aMCatNLO/')
 condor_dir = os.path.join(base_dir, 'htcondor/')
 out_dir = os.path.join(base_dir, FLAGS.out_dir + '/')
@@ -59,13 +59,17 @@ m = ( 'universe = vanilla',
       'log        = ' + outfile + '_job.log',
       
       'getenv = true',
-      '+JobBatchName ="FW_{}"'.format(FLAGS.out_dir),
+      '+JobBatchName = "FW_{}"'.format(FLAGS.out_dir),
       '+JobFlavour   = "microcentury"', # 2 hours (see https://batchdocs.web.cern.ch/local/submit.html)
 
       'RequestCpus   = 1',
       'RequestMemory = 1GB',
       'RequestDisk   = 512MB',
-      
+
+      'T3Queue         = short',
+      'WNTag           = el7',
+      '+SingularityCmd = ""',
+      'include : /opt/exp_soft/cms/t3/t3queue | ',
       'queue Mass, Stheta, Lambda112, Kappa111 from (',
       loop_inside,
       ')'
