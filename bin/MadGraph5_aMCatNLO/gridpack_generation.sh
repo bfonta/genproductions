@@ -280,9 +280,13 @@ make_gridpack () {
 				#get needed BSM model
 				if [[ $model = *[!\ ]* ]]; then
 					echo "Loading extra model $model in folder $PWD"
-					#wget --no-check-certificate https://cms-project-generators.web.cern.ch/cms-project-generators/$model	
-					#cp /afs/cern.ch/work/b/bfontana/genproductions/bin/MadGraph5_aMCatNLO/${model} .
-					cp /eos/user/b/bfontana/FiniteWidth/${model} .
+					#wget --no-check-certificate https://cms-project-generators.web.cern.ch/cms-project-generators/$model
+					#cp /eos/user/b/bfontana/FiniteWidth/${model} .
+					if [[ ${server} == "llr" ]]; then
+						cp /home/llr/cms/alves/genproductions/bin/MadGraph5_aMCatNLO/${model} .
+					elif [[ ${server} == "lxplus" ]]; then
+						cp /afs/cern.ch/work/b/bfontana/genproductions/bin/MadGraph5_aMCatNLO/${model} .
+					fi
 					cd models
 					if [[ $model == *".zip"* ]]; then
 						unzip ../$model
@@ -696,14 +700,17 @@ name=${1}
 # name of the run
 carddir=${2}
 
-# job local directory (hack to avoid logfile write from job to /afs/)
+# job local directory (bruno: hack to avoid logfile write from job to /afs/)
 jobdir=${3}
 
+# server: either llr or lxplus
+server=${4}
+
 # which queue
-queue=${4}
+queue=${5}
 
 # processing options
-jobstep=${5}
+jobstep=${6}
 
 # sync default cmssw with the current OS 
 export SYSTEM_RELEASE=`cat /etc/redhat-release`
@@ -738,10 +745,14 @@ fi
  
 # jobstep can be 'ALL','CODEGEN', 'INTEGRATE', 'MADSPIN'
 
-# if [ -z "$PRODHOME" ]; then
-#   PRODHOME=`pwd`
-# fi 
-PRODHOME="/afs/cern.ch/work/b/bfontana/genproductions/bin/MadGraph5_aMCatNLO"
+if [ -z "$PRODHOME" ]; then
+	#   PRODHOME=`pwd`
+	if [[ ${server} == "llr" ]]; then
+		PRODHOME="/home/llr/cms/alves/genproductions/bin/MadGraph5_aMCatNLO"
+	elif [[ ${server} == "lxplus" ]]; then
+		PRODHOME="/afs/cern.ch/work/b/bfontana/genproductions/bin/MadGraph5_aMCatNLO"
+	fi
+fi
 
 # Folder structure is different on CMSConnect
 helpers_dir=${PRODHOME%genproductions*}/genproductions/Utilities
@@ -802,8 +813,12 @@ if  [ "${jobstep}" == "MADSPIN" ]; then
 fi 
 
 #For correct running you should place at least the run and proc card in a folder under the name "cards" in the same folder where you are going to run the script
-# RUNHOME=`pwd`
-RUNHOME="/eos/user/b/bfontana/FiniteWidth/"
+if [[ ${server} == "llr" ]]; then
+	RUNHOME="/eos/user/b/bfontana/FiniteWidth/"
+elif [[ ${server} == "lxplus" ]]; then
+	# RUNHOME=`pwd`
+	RUNHOME="/eos/user/b/bfontana/FiniteWidth/"
+fi
 
 if [[ `uname -a` == *"lxplus"* ]]; then
   if [[ $RUNHOME == *"/eos/home-"* ]]; then

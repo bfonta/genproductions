@@ -6,8 +6,16 @@ LAMBDA112=${3}
 KAPPA111=${4}
 OUTDIR=${5}
 CARDDIR=${6}
+SERVER=${7}
 
-BASE="/afs/cern.ch/work/${USER:0:1}/${USER}/genproductions/bin/MadGraph5_aMCatNLO"
+if [ ${SERVER} == "llr" ]; then
+	BASE="/afs/cern.ch/work/${USER:0:1}/${USER}/genproductions/bin/MadGraph5_aMCatNLO"
+if [ ${SERVER} == "lxplus" ]; then
+	BASE="/home/llr/cms/alves/genproductions/bin/MadGraph5_aMCatNLO"
+fi
+else
+	echo "Server error."
+fi
 EOSBASE="/eos/user/${USER:0:1}/${USER}/FiniteWidth/"
 
 PARS="ST${STHETA}_L${LAMBDA112}_K${KAPPA111}_M${MASS}"
@@ -19,7 +27,7 @@ echo ${JOBDIR}/
 cd ${BASE}
 
 PYTHONPATH=$PYTHONPATH:/usr/lib64/python3.6/site-packages/; \
-	./gridpack_generation.sh ${NAME} cards/production/13TeV/${CARDDIR}/${NAME}/ ${JOBDIR}
+	./gridpack_generation.sh ${NAME} cards/production/13TeV/${CARDDIR}/${NAME}/ ${JOBDIR} ${SERVER}
 
 mv ${EOSBASE}/${NAME} ${OUTDIR}
 mv ${NAME}.log ${OUTDIR}
