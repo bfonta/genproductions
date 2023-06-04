@@ -738,9 +738,10 @@ fi
  
 # jobstep can be 'ALL','CODEGEN', 'INTEGRATE', 'MADSPIN'
 
-if [ -z "$PRODHOME" ]; then
-  PRODHOME=`pwd`
-fi 
+# if [ -z "$PRODHOME" ]; then
+#   PRODHOME=`pwd`
+# fi 
+PRODHOME="/afs/cern.ch/work/b/bfontana/genproductions/bin/MadGraph5_aMCatNLO"
 
 # Folder structure is different on CMSConnect
 helpers_dir=${PRODHOME%genproductions*}/genproductions/Utilities
@@ -801,7 +802,8 @@ if  [ "${jobstep}" == "MADSPIN" ]; then
 fi 
 
 #For correct running you should place at least the run and proc card in a folder under the name "cards" in the same folder where you are going to run the script
-RUNHOME=`pwd`
+# RUNHOME=`pwd`
+RUNHOME="/eos/user/b/bfontana/FiniteWidth/"
 
 if [[ `uname -a` == *"lxplus"* ]]; then
   if [[ $RUNHOME == *"/eos/home-"* ]]; then
@@ -818,6 +820,7 @@ LOGFILE_NAME=${LOGFILE/.log/}
 #   ${name}_proc_card_mg5.dat
 #   ${name}_run_card.dat
 CARDSDIR=${PRODHOME}/${carddir}
+
 # the folder where the script works, I guess
 GEN_FOLDER=${RUNHOME}/${name}
 

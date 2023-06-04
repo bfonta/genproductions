@@ -15,10 +15,11 @@ parser.add_argument("--card_dir", required=True,
                     help="Datacards subdirectory.",)
 FLAGS = parser.parse_args()
 
-base_dir = os.path.join('/afs/cern.ch/work/', os.environ['USER'][0], os.environ['USER'],
-                        'genproductions/bin/MadGraph5_aMCatNLO/')
-condor_dir = os.path.join(base_dir, 'htcondor/')
-out_dir = os.path.join(base_dir, FLAGS.out_dir + '/')
+base_afs = os.path.join('/afs/cern.ch/work/', os.environ['USER'][0], os.environ['USER'],
+                        'genproductions/bin/MadGraph5_aMCatNLO/htcondor/gridpacks/')
+base_eos = os.path.join('/eos/user/', os.environ['USER'][0], os.environ['USER'], 'FiniteWidth')
+
+out_dir = os.path.join(base_eos, FLAGS.out_dir + '/')
 
 for d in (out_dir,):
     if not os.path.exists(d):
@@ -52,7 +53,7 @@ for st in stheta_points:
 
 outfile = "Singlet_hh_ST$(Stheta)_L$(Lambda112)_K$(Kappa111)_M$(Mass)"
 m = ( 'universe = vanilla',
-      'executable = ' + os.path.join(condor_dir, 'gridpack_htcondor.sh'),
+      'executable = ' + os.path.join(base_afs, 'submission.sh'),
       'arguments  = $(Mass) $(Stheta) $(Lambda112) $(Kappa111) {} {}'.format(out_dir, FLAGS.card_dir),
       'output     = ' + outfile + '_job.out',
       'error      = ' + outfile + '_job.err',
@@ -60,7 +61,7 @@ m = ( 'universe = vanilla',
       
       'getenv = true',
       '+JobBatchName ="FW_{}"'.format(FLAGS.out_dir),
-      '+JobFlavour   = "microcentury"', # 2 hours (see https://batchdocs.web.cern.ch/local/submit.html)
+      '+JobFlavour   = "microcentury"', # 1 hour (see https://batchdocs.web.cern.ch/local/submit.html)
 
       'RequestCpus   = 1',
       'RequestMemory = 1GB',
@@ -71,5 +72,5 @@ m = ( 'universe = vanilla',
       ')'
      )
 
-with open(os.path.join(condor_dir, 'gridpack_htcondor_' + FLAGS.out_dir + '.condor'), 'w') as file:
+with open(os.path.join(base_afs, 'submission_' + FLAGS.out_dir + '.condor'), 'w') as file:
     file.write('\n'.join(m))
