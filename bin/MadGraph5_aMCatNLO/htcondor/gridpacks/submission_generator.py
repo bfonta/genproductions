@@ -8,7 +8,8 @@ def ntos(n, around=None):
         n = np.round(n, around)
     return str(n).replace('.', 'p').replace('-', 'm')
 
-parser = argparse.ArgumentParser(description='Plotter for finite width studies.')
+example = 'python generateCards.py --out TestSinglet --template SingletModel/cards_templates/'
+parser = argparse.ArgumentParser(description='Plotter for finite width studies.\nExample: {} .'.format(example))
 parser.add_argument("--out_dir", required=True, help="Output directory.",)
 parser.add_argument("--card_dir", required=True,
                     choices=('Singlet_resonly', 'Singlet_nores', 'Singlet_all'), 
@@ -17,15 +18,17 @@ parser.add_argument("--server", default='llr', choices=('llr', 'lxplus'),
                     help="Server where the script is running.",)
 FLAGS = parser.parse_args()
 
-base_local = os.path.join(os.environ['USER'][0], os.environ['USER'],
-                          'genproductions/bin/MadGraph5_aMCatNLO/htcondor/gridpacks/')
+base_local = 'genproductions/bin/MadGraph5_aMCatNLO/htcondor/gridpacks/'
 if FLAGS.server == 'llr':
-    base_local = '/afs/cern.ch/work/' + base_local
+    base_local = os.path.join('/home/llr/cms/alves/', base_local)
+    base_storage = os.path.join('/data_CMS/cms/alves/FiniteWidth/')
 elif FLAGS.server == 'lxplus':
-    base_local += '/home/cms/llr/alves' + base_local
-base_eos = os.path.join('/eos/user/',
-                        os.environ['USER'][0], os.environ['USER'], 'FiniteWidth')
-out_dir = os.path.join(base_eos, FLAGS.out_dir + '/')
+    base_local = os.path.join('/afs/cern.ch/work/',
+                              os.environ['USER'][0], os.environ['USER'], base_local)
+    base_storage = os.path.join('/eos/user/',
+                                os.environ['USER'][0], os.environ['USER'], 'FiniteWidth')
+
+out_dir = os.path.join(base_storage, FLAGS.out_dir + '/')
 
 for d in (out_dir,):
     if not os.path.exists(d):
@@ -66,7 +69,7 @@ m = ( 'universe = vanilla',
       #'log        = ' + outfile + '_job.log',
       
       'getenv = true',
-      '+JobBatchName ="FW_{}"'.format(FLAGS.out_dir),
+      '+JobBatchName = "FW_{}"'.format(FLAGS.out_dir),
       '+JobFlavour   = "microcentury"', # 1 hour (see https://batchdocs.web.cern.ch/local/submit.html)
 
       'RequestCpus   = 1',
