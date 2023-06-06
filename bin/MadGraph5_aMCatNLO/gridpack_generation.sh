@@ -817,7 +817,7 @@ fi
 
 #For correct running you should place at least the run and proc card in a folder under the name "cards" in the same folder where you are going to run the script
 if [[ ${server} == "llr" ]]; then
-	RUNHOME="/data_CMS/ucms/alves/FiniteWidth/"
+	RUNHOME="/data_CMS/cms/alves/FiniteWidth/"
 elif [[ ${server} == "lxplus" ]]; then
 	# RUNHOME=`pwd`
 	RUNHOME="/eos/user/b/bfontana/FiniteWidth/"
