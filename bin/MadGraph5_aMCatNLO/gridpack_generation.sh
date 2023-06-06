@@ -141,7 +141,8 @@ make_gridpack () {
     
     MGBASEDIRORIG=$(echo ${MG%$MG_EXT} | tr "." "_")
     isscratchspace=0
-    
+
+	echo "+++++++++ ${GEN_FOLDER}/${name}_gridpack ++++++++++++++++"
     if [ ! -d ${GEN_FOLDER}/${name}_gridpack ]; then
 		#directory doesn't exist, create it and set up environment
 		
@@ -162,7 +163,9 @@ make_gridpack () {
 		source $VO_CMS_SW_DIR/cmsset_default.sh
 		set -u
 
+		echo "------------------- CHECK 1 ----------------------"
 		scram project -n ${name}_gridpack CMSSW ${RELEASE} ;
+		echo "------------------- CHECK 2 ----------------------"
 		if [ ! -d ${name}_gridpack ]; then  
 			if [ "${BASH_SOURCE[0]}" != "${0}" ]; then echo "yes here"; return 1; else exit 1; fi
 		fi
@@ -716,8 +719,8 @@ jobstep=${6}
 export SYSTEM_RELEASE=`cat /etc/redhat-release`
 
 # set scram_arch 
-if [ -n "$5" ]; then
-    scram_arch=${5}
+if [ -n "$7" ]; then
+    scram_arch=${7}
 else
     if [[ $SYSTEM_RELEASE == *"release 7"* ]]; then 
         scram_arch=slc7_amd64_gcc10 
@@ -730,8 +733,8 @@ else
 fi
 
 #set cmssw 
-if [ -n "$6" ]; then
-    cmssw_version=${6}
+if [ -n "$8" ]; then
+    cmssw_version=${8}
 else
     if [[ $SYSTEM_RELEASE == *"release 7"* ]]; then 
         cmssw_version=CMSSW_12_4_8

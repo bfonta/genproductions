@@ -92,9 +92,9 @@ def save_data(args, procs, pars):
                                break
 
     for ip,proc in enumerate(procs):
-        with open('values_' + proc + '.p', 'wb') as fp:
+        with open('plots/values_' + proc + '.p', 'wb') as fp:
             pickle.dump(values[proc], fp, protocol=pickle.HIGHEST_PROTOCOL)
-        with open('errors_' + proc + '.p', 'wb') as fp:
+        with open('plots/errors_' + proc + '.p', 'wb') as fp:
             pickle.dump(errors[proc], fp, protocol=pickle.HIGHEST_PROTOCOL)
 
     return values, errors
@@ -152,7 +152,7 @@ def plot_mpl(x, y, z, yerr, labels, out, mode='2d'):
 def read_hpair():
     import csv
     rows = []
-    with open('plots/results.csv', newline='') as csvfile:
+    with open('plots/hpair_results.csv', newline='') as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
         for row in reader:
             rows.append([float(x) for x in row])
@@ -167,14 +167,14 @@ def main(args, p):
     if args.save:
         values, errors = save_data(args, processes, p)
     else:
-        values = [[] for _ in range(len(processes))]
-        errors = [[] for _ in range(len(processes))]
+        values = {k:recursive_dict() for k in processes}
+        errors = {k:recursive_dict() for k in processes}
         for ip,proc in enumerate(processes):
-            with open('values_' + proc + '.p', 'wb') as fp:
-                values[ip] = pickle.load(fp)
-            with open('errors_' + proc + '.p', 'wb') as fp:
-                errors[ip] = pickle.load(fp)
-    
+            with open('plots/values_' + proc + '.p', 'rb') as fp:
+                values[proc] = pickle.load(fp)
+            with open('plots/errors_' + proc + '.p', 'rb') as fp:
+                errors[proc] = pickle.load(fp)
+
     born, born_errors, nlo, nlo_errors = read_hpair()
 
     # M vs stheta vs xsecs
@@ -191,7 +191,7 @@ def main(args, p):
     elif args.lib == 'mpl':
         plot_mpl(x=p.k, y=[zvals1, born, nlo], z=None, yerr=[errors1, born_errors, nlo_errors],
                  out=base_out+'xsecs_1', mode='1d',
-                 labels=[r"$MadGraph (s_{\theta}$=0)", "HPAIR $\sigma_{BORN}$", "HPAIR $\sigma_{NLO}$"])
+                 labels=[r"MadGraph5", "HPAIR $\sigma_{BORN}$", "HPAIR $\sigma_{NLO}$"])
         #plot_mpl(x=p.m, y=p.l, z=zvals2, yerr=errors2, out=base_out+'xsecs_2.png', mode='1d')
 
 if __name__=='__main__':
