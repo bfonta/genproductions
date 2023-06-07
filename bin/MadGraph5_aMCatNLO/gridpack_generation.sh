@@ -440,17 +440,17 @@ make_gridpack () {
 		
     fi  
     
-    if [ -d gridpack ]; then
-		rm -rf gridpack
-    fi
+    # if [ -d gridpack ]; then
+	# 	rm -rf gridpack
+    # fi
     
-    if [ -d processtmp ]; then
-		rm -rf processtmp
-    fi
+    # if [ -d processtmp ]; then
+	# 	rm -rf processtmp
+    # fi
     
-    if [ -d process ]; then
-		rm -rf process
-    fi
+    # if [ -d process ]; then
+	# 	rm -rf process
+    # fi
     
     if [ ! -d ${name} ]; then
 		echo "Process output directory ${name} not found.  Either process generation failed, or the name of the output did not match the process name ${name} provided to the script (current folder: $PWD)."
@@ -482,7 +482,12 @@ make_gridpack () {
 		if ! [ -x "$(command -v git)" ]; then
 			script_dir=${PRODHOME%genproductions*}/genproductions/Utilities/scripts
 		else
-			script_dir=$(git rev-parse --show-toplevel)/Utilities/scripts
+		    echo "========================== $PWD =============================="
+		    echo "========================== $PRODHOME =============================="
+		    git rev-parse --show-toplevel
+		    #script_dir=$(git rev-parse --show-toplevel)/Utilities/scripts
+		    # "correct" way: script_dir=$(cd /home/llr/cms/alves/genproductions/bin/MadGraph5_aMCatNLO && git rev-parse --show-toplevel)
+		    script_dir=/grid_mnt/vol_home/llr/cms/alves/genproductions/Utilities/scripts
 		fi
     fi
     
@@ -610,13 +615,13 @@ make_gridpack () {
 		
 		echo "cleaning temporary output"
 		mv $WORKDIR/processtmp/pilotrun_gridpack.tar.gz $WORKDIR/
-		rm -rf processtmp
+		# rm -rf processtmp
 		mkdir process
 		cd process
 		echo "unpacking temporary gridpack"
 		tar -xzf $WORKDIR/pilotrun_gridpack.tar.gz
 		echo "cleaning temporary gridpack"
-		rm $WORKDIR/pilotrun_gridpack.tar.gz
+		# rm $WORKDIR/pilotrun_gridpack.tar.gz
 
 		# as of mg29x, it does not generate any event if 'True = gridpack' in the run card
 		# generate a few events manually
@@ -635,8 +640,8 @@ make_gridpack () {
 			echo "import $WORKDIR/unweighted_events.lhe.gz" > madspinrun.dat
 			cat $CARDSDIR/${name}_madspin_card.dat >> madspinrun.dat
 			$WORKDIR/$MGBASEDIRORIG/MadSpin/madspin madspinrun.dat 
-			rm madspinrun.dat
-			rm -rf tmp*
+			# rm madspinrun.dat
+			# rm -rf tmp*
 		fi
 		
 		echo "preparing final gridpack"
@@ -684,7 +689,7 @@ make_gridpack () {
         cd external_tarball
         tar -xvaf ../$tarname
         cd ..
-        rm $tarname
+        # rm $tarname
     fi
 
     # copy merge.pl from Utilities to allow merging LO events
