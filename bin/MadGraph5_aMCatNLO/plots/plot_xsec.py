@@ -19,8 +19,7 @@ from dataclasses import dataclass
 
 class ScanParameters:
     """Stores all parameters to be scanned."""
-    def __init__(self, masses: list[int], sthetas: list[float],
-                 lambdas112: list[float], kappas111: list[float]):
+    def __init__(self, masses, sthetas, lambdas112, kappas111):
         self.m = masses
         self.s = sthetas
         self.l = lambdas112
@@ -68,7 +67,7 @@ def save_data(args, procs, pars):
                 for lbd in pars.l:
                     for kap in pars.k:
                         found = False
-                        fname = 'Singlet_hh_ST' + ntos(st) + '_L' + ntos(lbd) + '_K' + ntos(kap) + '_M' + ntos(m) + '.log'
+                        fname = "log_M" + ntos(m) + "_ST" + ntos(st) + "_L" + ntos(lbd) + "_K" + ntos(kap) + ".log"
                         for i, line in enumerate(open(base+fname)):
                             for match in re.finditer(pattern_line, line):
                                tmp = pattern_floats.findall(line)
@@ -160,7 +159,8 @@ def read_hpair():
     return rows
                      
 def main(args, p):
-    base_out = "/eos/user/b/bfontana/www/FiniteWidth/"
+    #base_out = "/eos/user/b/bfontana/www/FiniteWidth/"
+    base_out = "plots/"
     #processes = ('resonly', 'nores', 'all')
     processes = ('nores',)
     
@@ -201,8 +201,8 @@ if __name__=='__main__':
     FLAGS = parser.parse_args()
     
     mass_points = (250,)
-    stheta_points = np.arange(0.,1.) #np.arange(0.,1.1,.2) # sine of theta mixing between the new scalar and the SM Higgs
-    l112_points = (0.,) #np.arange(-300,301,100) # resonance coupling with two Higgses
+    stheta_points = (0,) #np.arange(0.,1.1,.2) # sine of theta mixing between the new scalar and the SM Higgs
+    l112_points = (0,) #np.arange(-300,301,100) # resonance coupling with two Higgses
     lambda111_sm = np.round(125**2 / (2*246.), 6) # tri-linear Higgs coupling
     k111_points = np.arange(-7,12) #np.arange(-7,12) # tri-linear kappa
 
