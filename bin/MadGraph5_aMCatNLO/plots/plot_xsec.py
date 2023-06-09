@@ -60,7 +60,7 @@ def save_data(args, procs, pars):
 
     for ifile, afile in enumerate(procs):
         #base = "Singlet_" + afile + "/"
-        base = "TrilinearScan/"
+        base = "/eos/user/b/bfontana/FiniteWidth/HomeScan/"
 
         for m in pars.m:
             for st in pars.s:
@@ -68,27 +68,33 @@ def save_data(args, procs, pars):
                     for kap in pars.k:
                         found = False
                         fname = "log_M" + ntos(m) + "_ST" + ntos(st) + "_L" + ntos(lbd) + "_K" + ntos(kap) + ".log"
-                        for i, line in enumerate(open(base+fname)):
-                            for match in re.finditer(pattern_line, line):
-                               tmp = pattern_floats.findall(line)
+                        try:
+                            for i, line in enumerate(open(base+fname)):
+                                for match in re.finditer(pattern_line, line):
+                                   tmp = pattern_floats.findall(line)
+     
+                                   # three conditions to deal with the decimal point
+                                   if len(tmp) == 4:
+                                       val = float(tmp[0] + 'e' + tmp[1])
+                                       err = float(tmp[2] + 'e' + tmp[3])
+                                   elif len(tmp) == 3:
+                                       val = float(tmp[0])
+                                       err = float(tmp[1] + 'e' + tmp[2])
+                                   elif len(tmp) == 2:
+                                       val = float(tmp[0])
+                                       err = float(tmp[1])
+     
+                                   values[procs[ifile]][m][st][lbd][kap] = val
+                                   errors[procs[ifile]][m][st][lbd][kap] = err
+                                   found = True
+                                
+                                if found:
+                                   break
 
-                               # three conditions to deal with the decimal point
-                               if len(tmp) == 4:
-                                   val = float(tmp[0] + 'e' + tmp[1])
-                                   err = float(tmp[2] + 'e' + tmp[3])
-                               elif len(tmp) == 3:
-                                   val = float(tmp[0])
-                                   err = float(tmp[1] + 'e' + tmp[2])
-                               elif len(tmp) == 2:
-                                   val = float(tmp[0])
-                                   err = float(tmp[1])
-
-                               values[procs[ifile]][m][st][lbd][kap] = val
-                               errors[procs[ifile]][m][st][lbd][kap] = err
-                               found = True
+                        except FileNotFoundError:
+                            values[procs[ifile]][m][st][lbd][kap] = -0.01
+                            errors[procs[ifile]][m][st][lbd][kap] = 0.
                             
-                            if found:
-                               break
 
     for ip,proc in enumerate(procs):
         with open('plots/values_' + proc + '.p', 'wb') as fp:
@@ -122,31 +128,36 @@ def plot_bokeh(hf5, out):
     output_file(out+'.html')
     save(p)
 
-def plot_mpl(x, y, z, yerr, labels, out, mode='2d'):
+def plot_mpl(x, y, z, yerr, title, xlabel, ylabel, zlabel, labels, out, labelpad=0, mode='2d'):
     """
     Matplotlib plots. If mode=='2d', `x` and `y` are bin edges.
     """
     colors = itertools.cycle(palette)
     if mode=='1d':
         assert z is None
+    elif mode=='2d':
+        assert yerr is None
 
     fig = plt.figure()
     if mode == '1d':
-        plt.title('SM (no resonance)')
-        plt.xlabel(r'$k_{\lambda}$')
-        plt.ylabel(r'$\sigma$ [pb]')
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
         for yval,yerr,label,c in zip(y, yerr, labels, colors):
             plt.plot(x, yval, "-o", color=c, label=label)
-
+        plt.legend(loc="upper right")
+        
     elif mode == '2d':
-        plt.title('Cross-section without resonance')
-        plt.xlabel(r'$k_{\lambda}$')
-        plt.ylabel(r'$\sigma$ [pb]')
-        hep.hist2dplot(z, x, y)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        cbar = hep.hist2dplot(z, x, y, flow=None)
+        cbar.cbar.ax.set_ylabel(zlabel, rotation=0, labelpad=labelpad)
+        cbar.cbar.ax.tick_params(axis='y', labelrotation=0)
 
-    plt.legend(loc="upper right")
     plt.tight_layout()
-    plt.savefig(out+'_' + mode + '.png')
+    #hep.cms.text('Simulation')
+    hep.cms.lumitext(title)
+    for ext in ('.png', '.pdf'):
+        plt.savefig(out+'_' + mode + ext)
 
 def read_hpair():
     import csv
@@ -159,10 +170,9 @@ def read_hpair():
     return rows
                      
 def main(args, p):
-    #base_out = "/eos/user/b/bfontana/www/FiniteWidth/"
-    base_out = "plots/"
+    base_out = "/eos/user/b/bfontana/www/FiniteWidth/"
     #processes = ('resonly', 'nores', 'all')
-    processes = ('nores',)
+    processes = ('all',)
     
     if args.save:
         values, errors = save_data(args, processes, p)
@@ -175,24 +185,49 @@ def main(args, p):
             with open('plots/errors_' + proc + '.p', 'rb') as fp:
                 errors[proc] = pickle.load(fp)
 
-    born, born_errors, nlo, nlo_errors = read_hpair()
+    # born, born_errors, nlo, nlo_errors = read_hpair()
 
-    # M vs stheta vs xsecs
-    zvals1  = [values['nores'][p.m[0]][p.s[0]][p.l[0]][k] for k in p.k]
-    errors1 = [errors['nores'][p.m[0]][p.s[0]][p.l[0]][k] for k in p.k]
+    ### stheta vs sigma
+    # for lbd in p.l:
+    #     zvals, zerrs = ([] for _ in range(2))
+    #     for mass in p.m:
+    #         zvals.append([values['all'][mass][x][lbd][p.k[0]] for x in p.s])
+    #         zerrs.append([errors['all'][mass][x][lbd][p.k[0]] for x in p.s])
+             
+    #     plot_mpl(x=p.s, y=zvals, z=None, yerr=zerrs,
+    #              title=r"$\lambda_{{112}}={}GeV$".format(lbd),
+    #              xlabel=r'$\sin(\theta)$', ylabel=r'$\sigma [pb]$',
+    #              out=base_out+'homescan_lbd{}'.format(lbd), mode='1d',
+    #              labels=[r"$M_{{X}}={}$".format(x) for x in p.m])
 
-    # M vs lambda112 vs xsecs
-    # zvals2  = [[values['nores'][m][p.s[0]][lbd][p.k[0]] for lbd in p.l] for m in p.m]
-    # errors2 = [[errors['nores'][m][p.s[0]][lbd][p.k[0]] for lbd in p.l] for m in p.m]
+    ### lambda vs sigma
+    # for st in p.s:
+    #     zvals, zerrs = ([] for _ in range(2))
+    #     for mass in p.m:
+    #         zvals.append([values['all'][mass][st][x][p.k[0]] for x in p.l])
+    #         zerrs.append([errors['all'][mass][st][x][p.k[0]] for x in p.l])
+             
+    #     plot_mpl(x=p.l, y=zvals, z=None, yerr=zerrs,
+    #              title=r"$\sin(\theta)={}$".format(st),
+    #              xlabel=r'$\lambda_{{112}}\:[GeV]$', ylabel=r'$\sigma [pb]$',
+    #              out=base_out+'homescan_st{}'.format(st), mode='1d',
+    #              labels=[r"$M_{{X}}={}$".format(x) for x in p.m])
 
-    if args.lib == 'bokeh':
-        plot_bokeh(hf5, out)
+    ### stheta vs lambda vs sigma (2D)
+    theta_edges = p.s - (abs(p.s[1]-p.s[0])/2)
+    theta_edges = np.append(theta_edges, p.s[-1] + (abs(p.s[-1]-p.s[-2])/2))
+    lambda_edges = p.l - (abs(p.l[1]-p.l[0])/2)
+    lambda_edges = np.append(lambda_edges, p.l[-1] + (abs(p.l[-1]-p.l[-2])/2))
 
-    elif args.lib == 'mpl':
-        plot_mpl(x=p.k, y=[zvals1, born, nlo], z=None, yerr=[errors1, born_errors, nlo_errors],
-                 out=base_out+'xsecs_1', mode='1d',
-                 labels=[r"MadGraph5", "HPAIR $\sigma_{BORN}$", "HPAIR $\sigma_{NLO}$"])
-        #plot_mpl(x=p.m, y=p.l, z=zvals2, yerr=errors2, out=base_out+'xsecs_2.png', mode='1d')
+    for mx in p.m:
+        zvals = [[values['all'][mx][st][x][p.k[0]] for x in p.l] for st in p.s]
+        plot_mpl(x=theta_edges, y=lambda_edges, z=zvals, yerr=None,
+                 title=r"$M_{{X}}={}\:GeV$".format(mx),
+                 xlabel=r"$\sin(\theta)$", ylabel='$\lambda_{{112}}\:[GeV]$', zlabel=r'$\sigma [pb]$',
+                 out=base_out+'homescan_m{}'.format(mx), mode='2d',
+                 labels=[r"$M_{{X}}={}$".format(x) for x in p.m],
+                 labelpad=18 if mx==300 else 0)
+    
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Plotter for finite width studies.')
@@ -200,11 +235,11 @@ if __name__=='__main__':
     parser.add_argument('--lib', default='mpl', choices=('mpl', 'bokeh'), help="Plotting library.")
     FLAGS = parser.parse_args()
     
-    mass_points = (250,)
-    stheta_points = (0,) #np.arange(0.,1.1,.2) # sine of theta mixing between the new scalar and the SM Higgs
-    l112_points = (0,) #np.arange(-300,301,100) # resonance coupling with two Higgses
+    mass_points = (300, 600, 1000)
+    stheta_points = np.round(np.arange(0.,1.,.1),2) # sine of theta mixing between the new scalar and the SM Higgs
+    l112_points = np.arange(-300,301,100) # resonance coupling with two Higgses
     lambda111_sm = np.round(125**2 / (2*246.), 6) # tri-linear Higgs coupling
-    k111_points = np.arange(-7,12) #np.arange(-7,12) # tri-linear kappa
+    k111_points = (1,) #np.arange(-7,12) # tri-linear kappa
 
     scan_pars = ScanParameters(masses=mass_points, sthetas=stheta_points,
                                lambdas112=l112_points, kappas111=k111_points)    
