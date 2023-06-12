@@ -1,31 +1,26 @@
+
+import sys
 import os
 import argparse
 import numpy as np
+from dataclasses import dataclass
 
-def ntos(n, around=None):
-    """Converts float to string"""
-    if around is not None:
-        n = np.round(n, around)
-    return str(n).replace('.', 'p').replace('-', 'm')
+@dataclass
+class ParScan:
+    mas: list[float]
+    sth: np.ndarray  # sine of theta mixing between the new scalar and the SM Higgs
+    lbd: np.ndarray  # resonance coupling with two Higgses
+    kap: tuple[float]
 
-example = 'python generateCards.py --out TestSinglet --template SingletModel/cards_templates/'
-parser = argparse.ArgumentParser(description='Plotter for finite width studies.\nExample: {} .'.format(example))
-parser.add_argument("--out_dir", required=True, help="Output directory. Its name must match the tag used for the datacards.",)
-parser.add_argument("--card_dir", required=True,
-                    choices=('Singlet_resonly', 'Singlet_nores', 'Singlet_all'), 
-                    help="Datacards subdirectory.",)
-FLAGS = parser.parse_args()
+@dataclass
+class Pathes:
+    baselocal   : str
+    basestorage : str
+    condor      : str
+    out         : str
+    cards       : str
 
-base_local = os.path.join('/afs/cern.ch/work/',
-                          os.environ['USER'][0], os.environ['USER'],
-                          'genproductions/bin/MadGraph5_aMCatNLO/htcondor/gridpacks/')
-base_storage = os.path.join('/eos/user/',
-                            os.environ['USER'][0], os.environ['USER'], 'FiniteWidth')
-
-tag = FLAGS.out_dir
-out_dir = os.path.join(base_storage, FLAGS.out_dir + '/')
-
-for d in (out_dir,):
+def create_dir(d):
     if not os.path.exists(d):
         os.makedirs(d)
     else:
@@ -33,47 +28,100 @@ for d in (out_dir,):
         mes += 'Deletion command: rm -r {}\n'.format(d)
         raise RuntimeError(mes)
 
-masses = ('250', '270', '300', '350', '400',
-          '450', '500', '600', '700', '800', '900', '1000')
-sthetas = np.arange(0.,1.0001,.1) # sine of theta mixing between the new scalar and the SM Higgs
-lambdas = np.arange(-300,301,100) # resonance coupling with two Higgses
-kappas = (1.0, 2.4, 10.0)
+def ntos(n, around=None):
+    """Converts float to string"""
+    if around is not None:
+        n = np.round(n, around)
+    return str(n).replace('.', 'p').replace('-', 'm')
 
-def add_new_line(m, st, lbd, kap, s):
-    if not (m==masses[-1] and st==sthetas[-1] and lbd==lambdas[-1] and kap==kappas[-1]):
-        return s + "\n"
-    else:
-        return s
+def write_condor_file(par, path, tag):
+    """Write condor submission file."""
+    outfile = "Singlet_T" + tag + "_M$(Mass)_ST$(Stheta)_L$(Lambda112)_K$(Kappa111)"
+        
+    mes = '\n'.join(('universe = vanilla',
+                     'executable = ' + os.path.join(pathes.baselocal, 'submission.sh'),
+                     'arguments  = $(Mass) $(Stheta) $(Lambda112) $(Kappa111) {} {} {}'.format(path.out, path.cards, tag),
+                     'output     = ' + outfile + '.out',
+                     'error      = ' + outfile + '.err',
+                     
+                     'getenv = true',
+                     '+JobBatchName = "FW_{}"'.format(tag),
+                     '+JobFlavour   = "microcentury"', # 1 hour (see https://batchdocs.web.cern.ch/local/submit.html)
+                     
+                     'RequestCpus   = 1',
+                     'RequestMemory = 4GB',
+                     'RequestDisk   = 2GB',
+                     
+                     'max_materialize = 30',
+                     
+                     'queue Mass, Stheta, Lambda112, Kappa111 from (')) + '\n'
 
-loop_inside = ''
-for st in sthetas:
-    for lbd in lambdas:
-        for kap in kappas:
-            for m in masses:
-                loop_inside += '    ' + ntos(m) + ', ' + ntos(st, 1) + ', ' + ntos(lbd) + ', ' + ntos(kap)
-                loop_inside = add_new_line(m, st, lbd, kap, loop_inside)
+    for st in par.sth:
+        for lbd in par.lbd:
+            for kap in par.kap:
+                for m in par.mas:
+                    condor_name = "Singlet_T" + tag + "_M" + ntos(m) + "_ST" + ntos(st,1) + "_L" + ntos(lbd) + "_K" + ntos(kap)
+                    with open(os.path.join(path.condor, tag, condor_name + '.condor'), 'w') as file:
+                        full = mes + '    ' + ntos(m) + ', ' + ntos(st, 1) + ', ' + ntos(lbd) + ', ' + ntos(kap) + '\n)'
+                        file.write(full)
 
-outfile = os.path.join(base_storage, tag, "Singlet_T" + FLAGS.out_dir + "_M$(Mass)_ST$(Stheta)_L$(Lambda112)_K$(Kappa111)")
-m = ( 'universe = vanilla',
-      'executable = ' + os.path.join(base_local, 'submission.sh'),
-      'arguments  = $(Mass) $(Stheta) $(Lambda112) $(Kappa111) {} {} {}'.format(out_dir, FLAGS.card_dir, tag),
-      'output     = ' + outfile + '_job.out',
-      'error      = ' + outfile + '_job.err',
-      
-      'getenv = true',
-      '+JobBatchName = "FW_{}"'.format(FLAGS.out_dir),
-      '+JobFlavour   = "microcentury"', # 1 hour (see https://batchdocs.web.cern.ch/local/submit.html)
+def write_dag_file(par, path, tag):
+    """Write condor DAGMAN submission file."""
+    file = open(os.path.join(path.baselocal, 'submission_' + tag + '.dag'), 'w')
 
-      'RequestCpus   = 1',
-      'RequestMemory = 4GB',
-      'RequestDisk   = 2GB',
+    file.write('CONFIG {}/dag.config\n\n'.format(path.baselocal))
+    
+    for st in par.sth:
+        for lbd in par.lbd:
+            for kap in par.kap:
+                for m in par.mas:
+                    job_name = "Singlet_T" + tag + "_M" + ntos(m) + "_ST" + ntos(st,1) + "_L" + ntos(lbd) + "_K" + ntos(kap)
+                    move_args = ' '.join((path.out, tag, job_name))
+                    m = 'JOB {}_job {}/{}/{}.condor \n'.format(job_name, path.condor, tag, job_name)
+                    m += 'SCRIPT POST {}_job {}/move.sh '.format(job_name, path.baselocal) + move_args + '\n\n'
+                    file.write(m)
+    file.close()
+    
+if __name__ == "__main__":
+    major, minor, _, _, _ = sys.version_info
+    if major < 3 or (major == 3 and minor < 9):
+        m =  "This script requires at least Python 3.9\n"
+        m += "Run `source /cvmfs/sft.cern.ch/lcg/views/LCG_103/x86_64-centos7-gcc11-opt/setup.sh`\n"
+        raise Exception(m)
+    
+    example = 'python generateCards.py --out TestSinglet --template SingletModel/cards_templates/'
+    parser = argparse.ArgumentParser(description='Plotter for finite width studies.\nExample: {} .'.format(example))
+    parser.add_argument("--out_dir", required=True, help="Output directory. Its name must match the tag used for the datacards.",)
+    parser.add_argument("--card_dir", required=True,
+                        choices=('Singlet_resonly', 'Singlet_nores', 'Singlet_all'), 
+                        help="Datacards subdirectory.",)
+    FLAGS = parser.parse_args()
 
-      'max_materialize = 30',
-      
-      'queue Mass, Stheta, Lambda112, Kappa111 from (',
-      loop_inside,
-      ')'
-     )
+    base_local = os.path.join('/afs/cern.ch/work/',
+                              os.environ['USER'][0], os.environ['USER'],
+                              'genproductions/bin/MadGraph5_aMCatNLO/htcondor/gridpacks/')
+    base_storage = os.path.join('/eos/user/',
+                                os.environ['USER'][0], os.environ['USER'], 'FiniteWidth')
 
-with open(os.path.join(base_local, 'submission_' + FLAGS.out_dir + '.condor'), 'w') as file:
-    file.write('\n'.join(m))
+    tag = FLAGS.out_dir
+
+    condor_sub = os.path.join(base_local, "condor_sub")
+    create_dir(os.path.join(condor_sub, tag))
+
+    out_dir = os.path.join(base_storage, FLAGS.out_dir + '/')
+    create_dir(out_dir)
+    
+    pars = ParScan(mas=('250',),
+                   sth=np.arange(0.,1.0001,2.),
+                   lbd=np.arange(-300,301,300),
+                   kap=(1.0,))
+
+    pathes = Pathes(baselocal=base_local,
+                    basestorage=base_storage,
+                    condor=condor_sub,
+                    out=out_dir,
+                    cards=FLAGS.card_dir)
+
+    write_condor_file(pars, pathes, tag)
+
+    write_dag_file(pars, pathes, tag)

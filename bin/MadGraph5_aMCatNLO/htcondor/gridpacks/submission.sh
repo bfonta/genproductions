@@ -16,8 +16,4 @@ cd ${BASE}
 PYTHONPATH=$PYTHONPATH:/usr/lib64/python3.6/site-packages/; \
 	./gridpack_generation.sh ${NAME} cards/production/13TeV/${CARDDIR}/${NAME}/
 
-mv ${BASE}/${NAME}/ ${OUTDIR}
-mv ${NAME}.log ${OUTDIR}
-mv ${NAME}_slc7_amd64_gcc10_CMSSW_12_4_8_tarball.tar.xz ${OUTDIR} 
-
-echo "Done!"
+echo "DAGMAN Job finished!"
