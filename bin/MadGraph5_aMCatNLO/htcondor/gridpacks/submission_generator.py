@@ -8,10 +8,9 @@ def ntos(n, around=None):
         n = np.round(n, around)
     return str(n).replace('.', 'p').replace('-', 'm')
 
-example = 'python generateCards.py --out TestSinglet --template SingletModel/cards_templates/ --tag FullScanV1'
+example = 'python generateCards.py --out TestSinglet --template SingletModel/cards_templates/'
 parser = argparse.ArgumentParser(description='Plotter for finite width studies.\nExample: {} .'.format(example))
-parser.add_argument("--out_dir", required=True, help="Output directory.",)
-parser.add_argument("--tag", required=True, help="Identifier. Needs to match the datacards' tag.")
+parser.add_argument("--out_dir", required=True, help="Output directory. Its name must match the tag used for the datacards.",)
 parser.add_argument("--card_dir", required=True,
                     choices=('Singlet_resonly', 'Singlet_nores', 'Singlet_all'), 
                     help="Datacards subdirectory.",)
@@ -23,6 +22,7 @@ base_local = os.path.join('/afs/cern.ch/work/',
 base_storage = os.path.join('/eos/user/',
                             os.environ['USER'][0], os.environ['USER'], 'FiniteWidth')
 
+tag = FLAGS.out_dir
 out_dir = os.path.join(base_storage, FLAGS.out_dir + '/')
 
 for d in (out_dir,):
@@ -33,12 +33,11 @@ for d in (out_dir,):
         mes += 'Deletion command: rm -r {}\n'.format(d)
         raise RuntimeError(mes)
 
-# masses = ('250', '270', '300', '350', '400',
-#           '450', '500', '600', '700', '800', '900', '1000')
-masses = ('250',)
-sthetas = np.arange(0.,1.0001,.5) # sine of theta mixing between the new scalar and the SM Higgs
-lambdas = np.arange(-300,301,300) # resonance coupling with two Higgses
-kappas = (1.0,)# 2.4, 10.0)
+masses = ('250', '270', '300', '350', '400',
+          '450', '500', '600', '700', '800', '900', '1000')
+sthetas = np.arange(0.,1.0001,.1) # sine of theta mixing between the new scalar and the SM Higgs
+lambdas = np.arange(-300,301,100) # resonance coupling with two Higgses
+kappas = (1.0, 2.4, 10.0)
 
 def add_new_line(m, st, lbd, kap, s):
     if not (m==masses[-1] and st==sthetas[-1] and lbd==lambdas[-1] and kap==kappas[-1]):
@@ -54,13 +53,12 @@ for st in sthetas:
                 loop_inside += '    ' + ntos(m) + ', ' + ntos(st, 1) + ', ' + ntos(lbd) + ', ' + ntos(kap)
                 loop_inside = add_new_line(m, st, lbd, kap, loop_inside)
 
-outfile = "Singlet_" + FLAGS.tag + "_M$(Mass)_ST$(Stheta)_L$(Lambda112)_K$(Kappa111)"
+outfile = os.path.join(base_storage, tag, "Singlet_T" + FLAGS.out_dir + "_M$(Mass)_ST$(Stheta)_L$(Lambda112)_K$(Kappa111)")
 m = ( 'universe = vanilla',
       'executable = ' + os.path.join(base_local, 'submission.sh'),
-      'arguments  = $(Mass) $(Stheta) $(Lambda112) $(Kappa111) {} {}'.format(out_dir, FLAGS.card_dir),
+      'arguments  = $(Mass) $(Stheta) $(Lambda112) $(Kappa111) {} {} {}'.format(out_dir, FLAGS.card_dir, tag),
       'output     = ' + outfile + '_job.out',
       'error      = ' + outfile + '_job.err',
-      #'log        = ' + outfile + '_job.log',
       
       'getenv = true',
       '+JobBatchName = "FW_{}"'.format(FLAGS.out_dir),
@@ -70,7 +68,7 @@ m = ( 'universe = vanilla',
       'RequestMemory = 4GB',
       'RequestDisk   = 2GB',
 
-      'max_materialize = 50',
+      'max_materialize = 30',
       
       'queue Mass, Stheta, Lambda112, Kappa111 from (',
       loop_inside,
