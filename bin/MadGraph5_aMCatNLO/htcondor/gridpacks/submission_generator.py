@@ -34,38 +34,66 @@ def ntos(n, around=None):
         n = np.round(n, around)
     return str(n).replace('.', 'p').replace('-', 'm')
 
-def write_condor_file(par, path, tag):
-    """Write condor submission file."""
-    outfile = "Singlet_T" + tag + "_M$(Mass)_ST$(Stheta)_L$(Lambda112)_K$(Kappa111)"
+def get_condor_submission_main_text(path, job_name, child):
+    if child:
+        outfile = job_name
+        exe = 'move.sh'  
+        args = '{} {} {}'.format(path.out, tag, job_name)
+        mem = '1GB'
+        disk = '1GB'
+        flavour = 'expresso' # 20 minutes (see https://batchdocs.web.cern.ch/local/submit.html)
+    else:
+        outfile = "Singlet_T" + tag + "_M$(Mass)_ST$(Stheta)_L$(Lambda112)_K$(Kappa111)"
+        exe = 'submission.sh'
+        args = '$(Mass) $(Stheta) $(Lambda112) $(Kappa111) {} {} {}'.format(path.out, path.cards, tag)
+        mem = '4GB'
+        disk = '2GB'
+        flavour = 'microcentury' # 1 hour (see https://batchdocs.web.cern.ch/local/submit.html)
         
-    mes = '\n'.join(('universe = vanilla',
-                     'executable = ' + os.path.join(pathes.baselocal, 'submission.sh'),
-                     'arguments  = $(Mass) $(Stheta) $(Lambda112) $(Kappa111) {} {} {}'.format(path.out, path.cards, tag),
-                     'output     = ' + outfile + '.out',
-                     'error      = ' + outfile + '.err',
-                     
-                     'getenv = true',
-                     '+JobBatchName = "FW_{}"'.format(tag),
-                     '+JobFlavour   = "microcentury"', # 1 hour (see https://batchdocs.web.cern.ch/local/submit.html)
-                     
-                     'RequestCpus   = 1',
-                     'RequestMemory = 4GB',
-                     'RequestDisk   = 2GB',
-                     
-                     'max_materialize = 30',
-                     
-                     'queue Mass, Stheta, Lambda112, Kappa111 from (')) + '\n'
+    m = '\n'.join(('universe = vanilla',
+                   'executable = ' + os.path.join(pathes.baselocal, exe),
+                   'arguments  = ' + args,
+                   'output     = ' + outfile + ('_child' if child else '') + '.out',
+                   'error      = ' + outfile + ('_child' if child else '') + '.err',
+                   
+                   #'output_destination = root://eosuser.cern.ch/' + path.basestorage + '/$(Mass)_$(Stheta)_$(Lambda112)_$(Kappa111)/',
+                   #'MY.XRDCP_CREATE_DIR = True',
+                      
+                   'getenv = true',
+                   '+JobBatchName = "FW_{}'.format(tag) + ('_child' if child else '') + "\"",
+                   '+JobFlavour   = "{}"'.format(flavour),
+                   
+                   'RequestCpus   = 1',
+                   'RequestMemory = ' + mem,
+                   'RequestDisk   = ' + disk,
+                   
+                   'max_materialize = 80'))
+    if child:
+        m += '\nqueue\n'
+    else:
+        m += '\nqueue Mass, Stheta, Lambda112, Kappa111 from (\n'
+    return m
 
+def write_condor_file(par, path, tag, child):
+    """Write condor submission file."""
     for st in par.sth:
         for lbd in par.lbd:
             for kap in par.kap:
                 for m in par.mas:
-                    condor_name = "Singlet_T" + tag + "_M" + ntos(m) + "_ST" + ntos(st,1) + "_L" + ntos(lbd) + "_K" + ntos(kap)
+                    condor_name = ("Singlet_T" + tag + "_M" + ntos(m) + "_ST" + ntos(st,1) +
+                                   "_L" + ntos(lbd) + "_K" + ntos(kap))
+                    if child:
+                        mes = get_condor_submission_main_text(path, condor_name, child=True)
+                        with open(os.path.join(path.condor, tag, condor_name + '_child.condor'), 'w') as file:
+                            file.write(mes)
+
+                    mes = get_condor_submission_main_text(path, condor_name, child=False)
                     with open(os.path.join(path.condor, tag, condor_name + '.condor'), 'w') as file:
                         full = mes + '    ' + ntos(m) + ', ' + ntos(st, 1) + ', ' + ntos(lbd) + ', ' + ntos(kap) + '\n)'
                         file.write(full)
 
-def write_dag_file(par, path, tag):
+        
+def write_dag_file(par, path, tag, child=True):
     """Write condor DAGMAN submission file."""
     file = open(os.path.join(path.baselocal, 'submission_' + tag + '.dag'), 'w')
 
@@ -76,9 +104,13 @@ def write_dag_file(par, path, tag):
             for kap in par.kap:
                 for m in par.mas:
                     job_name = "Singlet_T" + tag + "_M" + ntos(m) + "_ST" + ntos(st,1) + "_L" + ntos(lbd) + "_K" + ntos(kap)
-                    move_args = ' '.join((path.out, tag, job_name))
                     m = 'JOB {}_job {}/{}/{}.condor \n'.format(job_name, path.condor, tag, job_name)
-                    m += 'SCRIPT POST {}_job {}/move.sh '.format(job_name, path.baselocal) + move_args + '\n\n'
+                    if child:
+                        m += 'JOB {}_child {}/{}/{}_child.condor \n'.format(job_name, path.condor, tag, job_name)
+                        m += 'PARENT {j}_job CHILD {j}_child '.format(j=job_name) + '\n\n'
+                    else:
+                        move_args = ' '.join((path.out, tag, job_name))
+                        m += 'SCRIPT POST {}_job {}/move.sh '.format(job_name, path.baselocal) + move_args + '\n\n'
                     file.write(m)
     file.close()
     
@@ -95,6 +127,7 @@ if __name__ == "__main__":
     parser.add_argument("--card_dir", required=True,
                         choices=('Singlet_resonly', 'Singlet_nores', 'Singlet_all'), 
                         help="Datacards subdirectory.",)
+    parser.add_argument('--no_child', action='store_true')
     FLAGS = parser.parse_args()
 
     base_local = os.path.join('/afs/cern.ch/work/',
@@ -111,10 +144,11 @@ if __name__ == "__main__":
     out_dir = os.path.join(base_storage, FLAGS.out_dir + '/')
     create_dir(out_dir)
     
-    pars = ParScan(mas=('250',),
-                   sth=np.arange(0.,1.0001,2.),
-                   lbd=np.arange(-300,301,300),
-                   kap=(1.0,))
+    pars = ParScan(mas=('250', '270', '300', '350', '400',
+                        '500', '600', '700', '800', '900', '1000'),
+                   sth=np.arange(0.,1.001,.1),
+                   lbd=np.arange(-300,301,100),
+                   kap=(1.0,2.4,10.0))
 
     pathes = Pathes(baselocal=base_local,
                     basestorage=base_storage,
@@ -122,6 +156,6 @@ if __name__ == "__main__":
                     out=out_dir,
                     cards=FLAGS.card_dir)
 
-    write_condor_file(pars, pathes, tag)
+    write_condor_file(pars, pathes, tag, not FLAGS.no_child)
 
-    write_dag_file(pars, pathes, tag)
+    write_dag_file(pars, pathes, tag, not FLAGS.no_child)
