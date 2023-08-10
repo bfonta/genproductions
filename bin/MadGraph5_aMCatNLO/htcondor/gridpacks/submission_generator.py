@@ -3,7 +3,6 @@ import sys
 import os
 import argparse
 import numpy as np
-from dataclasses import dataclass
 
 class ScanParameters:
     class dot(dict):
@@ -12,20 +11,19 @@ class ScanParameters:
         __setattr__ = dict.__setitem__
         __delattr__ = dict.__delitem__
 
-    def __init__(self, masses: list[float], sthetas: list[float],
-                 lambdas: list[float], kappas: list[float]):
-        self.masses  = mass
-        self.sthetas = stheta
-        self.lambdas = lambda112
-        self.kappas  = kappa111
+    def __init__(self, masses, sthetas, lambdas, kappas):
+        self.masses  = masses
+        self.sthetas = sthetas
+        self.lambdas = lambdas
+        self.kappas  = kappas
 
-@dataclass
 class Pathes:
-    baselocal   : str
-    basestorage : str
-    condor      : str
-    out         : str
-    cards       : str
+    def __init__(self, baselocal, basestorage, condor, out, cards):
+        self.baselocal = baselocal 
+        self.basestorage = basestorage
+        self.condor = condor
+        self.out = out
+        self.cards = cards
 
 def create_dir(d):
     if not os.path.exists(d):
@@ -109,7 +107,7 @@ def write_condor_file(par, path, tag, manual, child=True):
         
 def write_dag_file(par, path, tag, manual, child=True):
     """Write condor DAGMAN submission file."""
-    def single():
+    def single(st, lbd, kap, m):
         job_name = "Singlet_T" + tag + "_M" + ntos(m) + "_ST" + ntos(st,1) + "_L" + ntos(lbd) + "_K" + ntos(kap)
         m = 'JOB {}_job {}/{}/{}.condor \n'.format(job_name, path.condor, tag, job_name)
         if child:
@@ -137,8 +135,8 @@ def write_dag_file(par, path, tag, manual, child=True):
 
 if __name__ == "__main__":
     major, minor, _, _, _ = sys.version_info
-    if major < 3 or (major == 3 and minor < 9):
-        m =  "This script requires at least Python 3.9\n"
+    if major < 3:
+        m =  "This script requires Python 3\n"
         m += "Run `source /cvmfs/sft.cern.ch/lcg/views/LCG_103/x86_64-centos7-gcc11-opt/setup.sh`\n"
         raise Exception(m)
     
@@ -180,7 +178,7 @@ if __name__ == "__main__":
         k111_points = (-1.0, 1.0, 2.4, 6.0) # tri-linear kappa
 
     pars = ScanParameters(masses=mass_points, sthetas=stheta_points,
-                          lambdas=lbd112_points, kappas=k111_points)
+                          lambdas=l112_points, kappas=k111_points)
 
     pathes = Pathes(baselocal=base_local,
                     basestorage=base_storage,
