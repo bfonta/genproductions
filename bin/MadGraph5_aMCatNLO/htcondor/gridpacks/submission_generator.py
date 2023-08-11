@@ -3,6 +3,7 @@ import sys
 import os
 import argparse
 import numpy as np
+import shutil
 
 class ScanParameters:
     class dot(dict):
@@ -25,13 +26,22 @@ class Pathes:
         self.out = out
         self.cards = cards
 
-def create_dir(d):
-    if not os.path.exists(d):
-        os.makedirs(d)
-    else:
-        mes = 'Folder {} already exists!\n'.format(d)
-        mes += 'Deletion command: rm -r {}\n'.format(d)
-        raise RuntimeError(mes)
+def create_dir(adir):
+    if os.path.exists(adir):
+        mes = "Folder {} already exists!\n".format(adir)
+        mes += "Do want to delete it? [y/n]"
+        reply = input(mes)
+        while True:
+            if reply == 'y':
+                shutil.rmtree(adir)
+                break
+            elif reply == 'n':
+                print("Aborting...")
+                sys.exit()
+            else:
+                print("Please answer [y/n]: ")
+            
+    os.makedirs(adir)
 
 def ntos(n, around=None):
     """Converts float to string"""
