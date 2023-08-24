@@ -16,6 +16,6 @@ cd ${BASE}
 PYTHONPATH=$PYTHONPATH:/usr/lib64/python3.6/site-packages/; \
 	./gridpack_generation.sh ${NAME} cards/production/13TeV/${CARDDIR}/${NAME}/
 
-find ${BASE}/${NAME}/ -name "*" -delete # delete 0.5GB output
+#find ${BASE}/${NAME}/ -name "*" -delete # delete 0.5GB output
 
 echo "DAGMAN Job finished!"

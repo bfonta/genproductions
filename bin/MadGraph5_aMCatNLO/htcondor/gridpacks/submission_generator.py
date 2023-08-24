@@ -28,10 +28,10 @@ class Pathes:
 
 def create_dir(adir):
     if os.path.exists(adir):
-        mes = "Folder {} already exists!\n".format(adir)
+        mes = "Folder {} already exists! ".format(adir)
         mes += "Do want to delete it? [y/n]"
-        reply = input(mes)
         while True:
+            reply = input(mes)
             if reply == 'y':
                 shutil.rmtree(adir)
                 break
@@ -39,15 +39,14 @@ def create_dir(adir):
                 print("Aborting...")
                 sys.exit()
             else:
-                print("Please answer [y/n]: ")
+                print("Please answer [y/n]! ")
             
     os.makedirs(adir)
 
-def ntos(n, around=None):
+def ntos(n):
     """Converts float to string"""
-    if around is not None:
-        n = np.round(n, around)
-    return str(n).replace('.', 'p').replace('-', 'm')
+    assert isinstance(n, float)
+    return '{0:.2f}'.format(n).replace('.', 'p').replace('-', 'm')
 
 def get_condor_submission_main_text(path, job_name, child):
     if child:
@@ -92,7 +91,7 @@ def get_condor_submission_main_text(path, job_name, child):
 def write_condor_file(par, path, tag, manual, child=True):
     """Write condor submission file."""
     def single(st, lbd, kap, m):
-        condor_name = ("Singlet_T" + tag + "_M" + ntos(m) + "_ST" + ntos(st,1) +
+        condor_name = ("Singlet_T" + tag + "_M" + ntos(m) + "_ST" + ntos(st) +
                        "_L" + ntos(lbd) + "_K" + ntos(kap))
         if child:
             mes = get_condor_submission_main_text(path, condor_name, child=True)
@@ -101,7 +100,7 @@ def write_condor_file(par, path, tag, manual, child=True):
                 
                 mes = get_condor_submission_main_text(path, condor_name, child=False)
                 with open(os.path.join(path.condor, tag, condor_name + '.condor'), 'w') as file:
-                    full = mes + '    ' + ntos(m) + ', ' + ntos(st, 1) + ', ' + ntos(lbd) + ', ' + ntos(kap) + '\n)'
+                    full = mes + '    ' + ntos(m) + ', ' + ntos(st) + ', ' + ntos(lbd) + ', ' + ntos(kap) + '\n)'
                     file.write(full)
 
     if manual:
@@ -118,7 +117,7 @@ def write_condor_file(par, path, tag, manual, child=True):
 def write_dag_file(par, path, tag, manual, child=True):
     """Write condor DAGMAN submission file."""
     def single(st, lbd, kap, m):
-        job_name = "Singlet_T" + tag + "_M" + ntos(m) + "_ST" + ntos(st,1) + "_L" + ntos(lbd) + "_K" + ntos(kap)
+        job_name = "Singlet_T" + tag + "_M" + ntos(m) + "_ST" + ntos(st) + "_L" + ntos(lbd) + "_K" + ntos(kap)
         m = 'JOB {}_job {}/{}/{}.condor \n'.format(job_name, path.condor, tag, job_name)
         if child:
             m += 'JOB {}_child {}/{}/{}_child.condor \n'.format(job_name, path.condor, tag, job_name)
@@ -176,10 +175,12 @@ if __name__ == "__main__":
     create_dir(out_dir)
 
     if FLAGS.manual:
-        mass_points = (300.00, 300.00, 600.00, 600.00, 1000.00, 1000.00)             
-        stheta_points = (0.3, 0.1, 0.8, 0.1, 0.4, 0.3)
-        l112_points = (-500.00, -400.00, 600.00, 300.00, 100.00, 300.00)
-        k111_points = (1.0,)*6 # + (2.4,)*6 + ... tri-linear kappa
+        npoints = 8
+        mass_points = (280.00, 280.00, 280.00, 280.00, 500.00, 500.00, 500.00, 500.00,)
+        stheta_points = (0.70, 0.30, 0.70, 0.20, 0.30, 0.50, 0.50, 0.30) 
+        l112_points = (400.00, 500.00, -400.00, -500.00, -500.00, -400.00, 400.00, 500.00)
+        k111_points = (1.0,)*npoints # ... tri-linear kappa
+        assert all(len(x) == npoints for x in (mass_points, stheta_points, l112_points, k111_points))
     else:
         mass_points = (280.00, 300.00, 400.00, 500.00, 600.00, 700.00, 800.00, 900.00, 1000.00)
         stheta_points = (0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99) # sine of theta mixing between the new scalar and the SM Higgs

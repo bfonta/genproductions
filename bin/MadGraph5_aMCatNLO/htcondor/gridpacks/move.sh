@@ -11,8 +11,8 @@ mkdir -p ${OUTDIR}
 # mv ${BASE}/${NAME}/ ${OUTDIR}
 # find ${BASE}/${NAME}/ -name "*" -delete
 
-#mv ${BASE}/${NAME}_slc7_amd64_gcc10_CMSSW_12_4_8_tarball.tar.xz ${OUTDIR} 
-rm -r ${BASE}/${NAME}_slc7_amd64_gcc10_CMSSW_12_4_8_tarball.tar.xz
+mv ${BASE}/${NAME}_slc7_amd64_gcc10_CMSSW_12_4_8_tarball.tar.xz ${OUTDIR} 
+# rm -r ${BASE}/${NAME}_slc7_amd64_gcc10_CMSSW_12_4_8_tarball.tar.xz
 
 mv ${BASE}/${NAME}.err ${OUTDIR}
 mv ${BASE}/${NAME}.out ${OUTDIR}
