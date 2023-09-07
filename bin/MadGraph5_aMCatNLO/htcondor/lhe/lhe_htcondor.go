@@ -28,12 +28,13 @@ func contains(s []string, e string) bool {
 
 func main() {
 	modeFlag := flag.String("mode", "", "Input directory, where the tarballs are stored.")
+	tagFlag := flag.String("tag", "", "Tag, used for input cards and job names.")
 	flag.Usage = func() {
-	    fmt.Fprintf(os.Stderr, "Usage: go run lhe_htcondor.go -mode=XXX\n")
+	    fmt.Fprintf(os.Stderr, "Usage: go run lhe_htcondor.go -mode=XXX -tag=ManualV2\n")
 	}   
 	flag.Parse()
-	if *modeFlag == "" {
-		fmt.Println("Please specify the '-mode=...' option.")
+	if *modeFlag == "" || *tagFlag == "" {
+		fmt.Println("Please specify the '-mode=...' and the '-tag=...' options.")
 		os.Exit(1)
 	}
 	modes := [3]string{"all", "resonly", "nores"}
@@ -42,7 +43,7 @@ func main() {
 		os.Exit(1)
 	}
 	
-	indir := fp.Join("/eos/user/b/bfontana/FiniteWidth/", "Manual_" + *modeFlag)
+	indir := fp.Join("/eos/user/b/bfontana/FiniteWidth/", *tagFlag + "_" + *modeFlag)
 	base_dir := fp.Join("/afs/cern.ch/work/",
 		string(os.Getenv("USER")[0]), os.Getenv("USER"),
 		"genproductions/bin/MadGraph5_aMCatNLO/")
@@ -51,15 +52,14 @@ func main() {
 
 	outfile := *modeFlag + "_M$(Mass)_ST$(Stheta)_L$(Lambda)_K$(Kappa)"
 
-	# masses  := [6]string{"300.00",  "300.00",  "600.00", "600.00", "1000.00", "1000.00"}
-	# sthetas := [6]string{"0.30",    "0.10",    "0.80",   "0.10",   "0.40",    "0.30"}
-	# lambdas := [6]string{"-500.00", "-400.00", "600.00", "300.00", "100.00",  "300.00"}
-	# kappas  := [6]string{"1.00",    "1.00",    "1.00",   "1.00",   "1.00",    "1.00",}
-
-	masses  := [8]string{"280.00",  "280.00",  "280.00",  "280.00",  "500.00",   "500.00",  "500.00", "500.00"}
-	sthetas := [8]string{"0.70",    "0.30",    "0.70",    "0.20",    "0.30",     "0.50",    "0.50",   "0.30"}
-	lambdas := [8]string{"400.00",  "500.00",  "-400.00", "-500.00", "-500.00",  "-400.00", "400.00", "500.00"}
-	kappas  := [8]string{"1.00",    "1.00",    "1.00",    "1.00",    "1.00",     "1.00",    "1.00",   "1.00"}
+	// masses  := [8]string{"280.00",  "280.00",  "280.00",  "280.00",  "500.00",   "500.00",  "500.00", "500.00"}
+	// sthetas := [8]string{"0.14",    "0.29",    "0.29",    "0.14",    "0.27",     "0.62",    "0.62",   "0.27"}
+	// lambdas := [8]string{"463.05",  "456.08",  "-456.29", "-462.96", "-540.97",  "-15.72", "15.73",   "539.06"}
+	// kappas  := [8]string{"1.00",    "1.00",    "1.00",    "1.00",    "1.00",     "1.00",    "1.00",   "1.00"}
+	masses  := [2]string{"500.00",  "500.00"}
+	sthetas := [2]string{"0.03",   "0.03"} // the datacards actually used 0.033
+	lambdas := [2]string{"-600.00", "600.00",}
+	kappas  := [2]string{"1.00",    "1.00"}
 
 	loop_inside := ""
 	r1 := regexp.MustCompile(regexp.QuoteMeta("."))
@@ -91,19 +91,19 @@ func main() {
 		}
 	}
 
-	nevents := "100000" # "5000"
+	nevents := "100000" // "5000"
 	m := []string{
 		"universe = vanilla",
 		"executable = " + fp.Join(condor_dir, "lhe_htcondor.sh"),
-		fmt.Sprintf("arguments  = $(Mass) $(Stheta) $(Lambda) $(Kappa) %s %s %s",
-			*modeFlag, indir, nevents),
+		fmt.Sprintf("arguments  = $(Mass) $(Stheta) $(Lambda) $(Kappa) %s %s %s %s",
+			*modeFlag, indir, nevents, *tagFlag),
 		"output     = " + condor_out + outfile + ".out",
 		"error      = " + condor_out + outfile + ".err",
 		"log        = " + condor_out + outfile + ".log",
 		
 		"getenv = true",
 		fmt.Sprintf("+JobBatchName=\"FW_LHE_%s\"", *modeFlag),
-		"+JobFlavour = \"longlunch\"", // 2 hours (see https://batchdocs.web.cern.ch/local/submit.html) // workday 
+		"+JobFlavour = \"workday\"", // 8 hours (see https://batchdocs.web.cern.ch/local/submit.html)
 		"RequestCpus = 1",
 		
 		"queue Mass, Stheta, Lambda, Kappa from (",
