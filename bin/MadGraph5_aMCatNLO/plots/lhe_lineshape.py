@@ -41,9 +41,11 @@ def plot(hists, out, interf, max_events, log=False, ratio=False, diff=False, ver
     #assert not (ratio and diff)
     palette = plt.get_cmap('Set1') #matplotlib.colormaps['Set1']
     colors = iter(utils.colormap_discretize(palette))
-
+    markers = iter(('o', 'v', 's', '*'))
+    markersize = '9'
+    
     labels = {'all'     : r"$\sigma_{full}$",
-              'nores'   : r"$\sigma_{nores}$",
+              'nores'   : r"$\sigma_{nonres}$",
               'resonly' : r"$\sigma_{res}$"}
     ratios = [3.,1.] if ratio else [1.,0.]
 
@@ -54,6 +56,7 @@ def plot(hists, out, interf, max_events, log=False, ratio=False, diff=False, ver
         ax2.set_yticks([])
 
     hep.cms.text('Simulation', fontsize=20, ax=ax1)
+    hep.cms.lumitext("13 TeV", fontsize=20, ax=ax1)
     title = re.findall(".*_M(.+)_ST(.+)_L(.+)_K(.+)_cmsgrid_final", out)[0]
     title = [float(t.replace('m', '-').replace('p', '.')) for t in title]
     title = r"$M_{{X}}={}\;GeV, \sin\alpha={}, \lambda_{{HHX}}={}\;GeV, k_{{\lambda}}={}$".format(*title)
@@ -74,8 +77,11 @@ def plot(hists, out, interf, max_events, log=False, ratio=False, diff=False, ver
                      fmt="-o", color=next(colors), label=labels['resonly'])
     else:
         for k, v in hists.items():
+            cc = next(colors)
+            mm = next(markers)
             ax1.errorbar(v.axes[0].centers, v.values(), yerr=np.sqrt(v.variances()),
-                         fmt="-o", color=next(colors), label=labels[k])
+                         fmt="-"+mm, markersize=markersize, markerfacecolor=cc if mm!='s' else 'none',
+                         color=cc, label=labels[k])
 
     if ratio:
         # warnings.filterwarnings("error")
@@ -105,7 +111,7 @@ def plot(hists, out, interf, max_events, log=False, ratio=False, diff=False, ver
             var_ratio = 0.
 
         ax2.errorbar(hists['all'].axes[0].centers, yvals, yerr=np.sqrt(var_ratio),
-                     fmt="-o", color=next(colors))
+                     fmt="-o", color=next(colors), markersize=markersize)
         if diff:
             ax2.set_ylabel(r"$(\sigma_{full} - \sigma_{nores})\; / \;\sigma_{res}$", fontsize=18)
         else:
@@ -119,7 +125,7 @@ def plot(hists, out, interf, max_events, log=False, ratio=False, diff=False, ver
 
     ax1.legend(bbox_to_anchor=(0.78, 0.91), loc="upper left", borderaxespad=0)
     xstart = 0.71 if diff else 0.79
-    figtext_dict = dict(fontsize=15, color ="black",
+    figtext_dict = dict(fontsize=16, color ="black",
                         style="italic",
                         wrap=True,
                         horizontalalignment ="right",
@@ -136,7 +142,7 @@ def plot(hists, out, interf, max_events, log=False, ratio=False, diff=False, ver
         out += '_diff'
     out += "_NEVENTS" + str(max_events) if max_events != -1 else "all"
     for ext in ('.png', '.pdf'):
-        save_name = 'histplots/' + out + ext
+        save_name = '/eos/home-b/bfontana/www/FiniteWidth/lineshapes/' + out + ext
         if verbose:
             print('Saving plot under {}'.format(save_name))
         plt.savefig(save_name)
